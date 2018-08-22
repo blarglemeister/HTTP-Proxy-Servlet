@@ -94,6 +94,12 @@ public class ProxyServlet extends HttpServlet {
   
   /** A boolean parameter whether to use JVM-defined system properties to configure various networking aspects. */
   public static final String P_USESYSTEMPROPERTIES = "useSystemProperties";
+
+  /** An integer parameter name to set the maximum total connections on the HttpClient */
+  public static final String P_MAXTOTAL = "maxTotal";
+
+  /** An integer parameter name to set the maximum connections per route on the HttpClient */
+  public static final String P_MAXPERROUTE = "maxPerRoute";
   
   /** The parameter name for the target (destination) URI to proxy to. */
   protected static final String P_TARGET_URI = "targetUri";
@@ -114,6 +120,8 @@ public class ProxyServlet extends HttpServlet {
   protected boolean useSystemProperties = false;
   protected int connectTimeout = -1;
   protected int readTimeout = -1;
+  protected int maxTotalConnections = 20;
+  protected int maxConnectionsPerRoute = 2;
 
   //These next 3 are cached here, and should only be referred to in initialization logic. See the
   // ATTR_* parameters.
@@ -188,6 +196,16 @@ public class ProxyServlet extends HttpServlet {
       this.useSystemProperties = Boolean.parseBoolean(useSystemPropertiesString);
     }
 
+    String maxTotalString = getConfigParam(P_MAXTOTAL);
+    if (maxTotalString != null) {
+      this.maxTotalConnections = Integer.parseInt(maxTotalString);
+    }
+
+    String maxPerRouteString = getConfigParam(P_MAXPERROUTE);
+    if (maxPerRouteString != null) {
+      this.maxConnectionsPerRoute = Integer.parseInt(maxPerRouteString);
+    }
+
     initTarget();//sets target*
 
     proxyClient = createHttpClient(buildRequestConfig());
@@ -225,6 +243,8 @@ public class ProxyServlet extends HttpServlet {
    */
   protected HttpClient createHttpClient(final RequestConfig requestConfig) {
     HttpClientBuilder clientBuilder = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig);
+    clientBuilder.setMaxConnTotal(maxTotalConnections);
+    clientBuilder.setMaxConnPerRoute(maxConnectionsPerRoute);
     if (useSystemProperties)
       clientBuilder = clientBuilder.useSystemProperties();
     return clientBuilder.build();
